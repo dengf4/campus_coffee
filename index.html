@@ -118,10 +118,18 @@
         }
 
         /* Complete nested menu grid here (mobile: 1 column) */
-        .menu-grid {}
+        .menu-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
 
         /* Complete breakpoint for menu cards (desktop: 3 columns) */
-        @media (min-width: 900px) {}
+        @media (min-width: 900px) {
+            .menu-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
 
         article {
             border: 1px solid var(--border);
@@ -160,6 +168,7 @@
 
         pre {
             white-space: pre-wrap;
+            overflow-wrap: anywhere;
             background: rgba(15, 23, 42, 0.03);
             border: 1px dashed rgba(15, 23, 42, 0.15);
             padding: 12px;
@@ -187,7 +196,7 @@
 
             <!-- Add a banner image here. -->
             <img src="coffee-shop-banner.jpg" alt="Coffee on a table" />
-            <p class="muted">Banner photo: https://dermanis.gr/en/products/coffee-nuts-cellars/coffee-shop-banner/</p>
+            <p class="muted">Photo: https://dermanis.gr/en/products/coffee-nuts-cellars/coffee-shop-banner/</p>
         </header>
 
         <nav class="nav panel">
@@ -250,12 +259,14 @@
             <!-- Add the weather display box here:
      	Create a div with id="weatherBox" and class="weather".
      	Set its starting text to: Loading weather... -->
+            <div id="weatherBox" class="weather">Loading weather...</div>
+
         </aside>
 
         <footer class="footer panel">
             <p>&copy; 2026 Campus Café</p>
             <p class="muted">Weather data by Open-Meteo (CC BY 4.0).</p>
-            <p class="muted">Banner photo attribution goes here (if required).</p>
+            <p class="muted">Banner photo attribution: https://dermanis.gr/en/products/coffee-nuts-cellars/coffee-shop-banner/</p>
         </footer>
 
     </div>
@@ -279,10 +290,15 @@
 
         /* Complete: return trimmed + lowercase string; handle cancel/empty safely; if raw is null, it should return an empty string to avoid errors on .trim() */
         function normalizeType(raw) {
+            if (raw == null) {
+                return "";
+            }
+            return raw.trim().toLowerCase();
         }
 
         /* Complete: return true only for coffee, sandwich, salad */
         function isValidType(t) {
+            return t == "coffee" || t == "sandwich" || t == "salad";
         }
 
         /* Complete: use a for loop to repeat an icon up to 10 times */
@@ -292,7 +308,9 @@
             const cap = Math.min(qty, 10);
             let line = "";
             //write the FOR loop that repeats icon cap times
-            // for (...) { line += icon; }
+            for (let i = 0; i < cap; i++) {
+                line += icon;
+            }
             return line;
         }
 
@@ -307,7 +325,33 @@
             // compute tax and total
             // return an object with all values
 
-            // return { unitPrice, subtotal, studentDiscount, ecoFee, bulkDiscount, tax, total };
+            const subtotal = unitPrice * qty;
+            const studentDiscount = (() => {
+                if (isStudent) {
+                    return subtotal * STUDENT_RATE;
+                } else {
+                    return 0;
+                }
+            })();
+            const ecoFee = (() => {
+                if (type == "coffee" && ecoCup) {
+                    return qty * ECO_FEE;
+                } else {
+                    return 0;
+                }
+            })();
+            const bulkDiscount = (() => {
+                if (qty >= BULK_QTY) {
+                    return BULK_OFF;
+                } else {
+                    return 0;
+                }
+            })();
+            const taxableAmount = (subtotal - studentDiscount + ecoFee - bulkDiscount);
+            const tax = taxableAmount * TAX_RATE;
+            const total = taxableAmount + tax;
+
+            return { unitPrice, subtotal, studentDiscount, ecoFee, bulkDiscount, tax, total };
         }
 
         function buildReceipt(type, qty, isStudent, ecoCup, calc) {
@@ -335,10 +379,12 @@ TOTAL:          ${money(calc.total)}
 
         /* Complete: show a clear error in #display */
         function showError(msg) {
+            document.getElementById("display").textContent = `Error: ${msg}`;
         }
 
         /* Complete: reset #display to "No order data." */
         function resetUI() {
+            document.getElementById("display").textContent = "No order data.";
         }
 
         async function loadWeather() {
@@ -378,12 +424,17 @@ TOTAL:          ${money(calc.total)}
                    - must be between 1 and 10
                    - if invalid: showError(...) and stop
                 */
+                if (!Number.isInteger(qty) || qty < 1 || qty > 10) {
+                    showError("Quantity must be an integer between 1 and 10.");
+                    return;
+                }
 
                 /* Add a confirm dialog here for student discount:
                    Store the result in a variable named isStudent.
                 */
+                const isStudent = confirm("Are you a student?");
 
-                const ecoCup = (type === "coffee") ? confirm("Add reusable cup? (+$1.00)") : false;
+                const ecoCup = (type == "coffee") ? confirm("Add reusable cup? (+$1.00)") : false;
 
                 const calc = processQuote(type, qty, isStudent, ecoCup);
                 document.getElementById("display").textContent =
